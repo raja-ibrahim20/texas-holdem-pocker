@@ -1,0 +1,55 @@
+# =========================
+# Stage 1: Build Stage
+# =========================
+FROM python:3.13-slim as builder
+
+# Install uv (modern package manager)
+RUN pip install --no-cache-dir uv
+
+# Set the working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY backend/pyproject.toml .
+COPY backend/uv.lock .
+
+# Install dependencies in a virtual environment under /app/.venv
+RUN uv sync --frozen
+
+# =========================
+# Stage 2: Final Runtime Image
+# =========================
+FROM python:3.13-slim
+
+# Install system dependencies for PostgreSQL and networking
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        postgresql-client \
+        wait-for-it && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install uv globally in the runtime container
+RUN pip install --no-cache-dir uv
+
+# Set working directory
+WORKDIR /app
+
+# Copy app code and dependency files
+COPY backend/app ./app
+COPY backend/sql ./sql
+COPY backend/pyproject.toml .
+COPY backend/uv.lock .
+
+# Copy installed environment from builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Tell uv and Python to use the .venv environment
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Expose FastAPI port
+EXPOSE 8000
+
+# ✅ Run your FastAPI backend using uv’s project environment
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

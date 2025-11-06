@@ -1,0 +1,35 @@
+# Stage 1: Dependency Installation and Build
+FROM node:20 as base
+
+# Set the working directory inside the container
+WORKDIR /app/frontend
+
+# Copy package files from the nested Next.js app (context is project root)
+COPY frontend/poker-app/package.json frontend/poker-app/package-lock.json ./
+RUN npm install
+
+# Stage 2: Build the Application
+FROM base as builder
+# Copy the entire Next.js app contents
+COPY frontend/poker-app/ .
+# Set the backend URL for Next.js API route usage
+ENV PYTHON_API_URL=http://backend:8000
+RUN npm run build
+
+# Stage 3: Production Server
+FROM node:20-slim as runner
+WORKDIR /app/frontend
+
+# Copy necessary files from the builder stage
+# Next.js uses .next/standalone and .next/static
+COPY --from=builder /app/frontend/.next/standalone ./
+COPY --from=builder /app/frontend/.next/static ./.next/static
+# Copy public files
+COPY frontend/poker-app/public ./public
+
+# Set production environment variables
+ENV NODE_ENV=production
+# Re-set the API URL for runtime usage (if not NEXT_PUBLIC_)
+ENV PYTHON_API_URL=http://backend:8000
+EXPOSE 3000
+CMD ["node", "server.js"]

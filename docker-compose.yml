@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      # These credentials are now mandatory for Postgres 15 to initialize
+      POSTGRES_DB: pokerdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pokerpass
+    volumes:
+      # Data Persistence
+      - poker_postgres_data:/var/lib/postgresql/data
+      # Automated Schema Initialization (Bypassing init.sh for this task)
+      - ./backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - poker_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.backend
+    container_name: python_backend
+    restart: always
+    environment:
+      # Connection URL for SQLAlchemy inside the Python app
+      DATABASE_URL: postgresql://postgres:pokerpass@db:5432/pokerdb
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the app code for easy development iteration
+      - ./backend/app:/app/app
+      # - ./backend/init.sh:/app/init.sh
+    # Wait for the DB service to be fully ready before executing init.sh
+    depends_on:
+      db:
+        condition: service_healthy
+    # entrypoint: ["./init.sh"]
+    networks:
+      - poker_network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.frontend
+    container_name: nextjs_frontend
+    restart: always
+    environment:
+      PYTHON_API_URL: http://python_backend:8000/hands
+    ports:
+      - "3000:3000"
+    # Wait for the backend API to be running
+    depends_on:
+      - backend
+    networks:
+      - poker_network
+
+volumes:
+  poker_postgres_data:
+
+networks:
+  poker_network:
+    name: poker_default

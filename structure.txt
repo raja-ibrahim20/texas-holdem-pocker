@@ -1,0 +1,39 @@
+.
+├── backend
+│   ├── Dockerfile.backend
+│   ├── README.md
+│   ├── app
+│   │   ├── __init__.py
+│   │   ├── db.py
+│   │   ├── main.py
+│   │   ├── models_entity.py
+│   │   ├── poker_service.py
+│   │   ├── repository.py
+│   │   ├── schemas.py
+│   │   └── test_main.py
+│   ├── poetry.lock
+│   ├── pyproject.toml
+│   ├── sql
+│   │   └── init.sql
+│   ├── tests
+│   └── uv.lock
+├── docker-compose.yml
+├── frontend
+│   ├── Dockerfile.frontend
+│   └── poker-app
+│       ├── README.md
+│       ├── components.json
+│       ├── eslint.config.mjs
+│       ├── jest.config.js
+│       ├── next-env.d.ts
+│       ├── next.config.ts
+│       ├── package-lock.json
+│       ├── package.json
+│       ├── postcss.config.mjs
+│       ├── public
+│       ├── src
+│       ├── tailwind.config.ts
+│       └── tsconfig.json
+└── structure.txt
+
+9 directories, 28 files
